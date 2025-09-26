@@ -1,0 +1,32 @@
+#requires -Version 3.0
+<#
+.SYNOPSIS
+Gets the CPU temperature
+
+.DESCRIPTION
+Retrieves CPU temperature from the WMI Class MsAcpi_ThermalZoneTemperature.
+
+.NOTES
+- Not all motherboard BIOS software implements Acpi_ThermalZoneTemperature.
+- If unavailable, this does not necessarily indicate an error with the motherboard.
+#>
+
+$ErrorActionPreference = 'Stop'
+
+# --- CPU TEMPERATURE ---
+try {
+    [string]$output = Get-WmiObject -Namespace root/wmi -ClassName MsAcpi_ThermalZoneTemperature `
+        -Filter "Active='True' and CurrentTemperature<>2732" `
+        -Property InstanceName, CurrentTemperature |
+        Select-Object InstanceName, @{n = 'CurrentTemperatureC'; e = { '{0:n0} C' -f (($_.CurrentTemperature - 2732) / 10.0) }} |
+        ConvertTo-Json
+
+    Write-Output "### SIP DATA BEGINS ###"
+    Write-Output $output
+    Write-Output "### SIP DATA ENDS ###"
+}
+catch {
+    Write-Output "### SIP EVENT BEGINS ###"
+    Write-Output 'The temperature could not be retrieved. The motherboard BIOS likely has not implemented MsAcpi_ThermalZoneTemperature.'
+    Write-Output "### SIP EVENT ENDS ###"
+}
